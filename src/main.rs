@@ -74,11 +74,7 @@ fn main() -> io::Result<()> {
             }
         }
 
-        queue!(
-            stdout,
-            Print("\r"),
-            Clear(terminal::ClearType::UntilNewLine)
-        )?;
+        clear_screen(&mut stdout)?;
         for key in &arr {
             queue!(stdout, Print(key))?;
         }

@@ -42,9 +42,7 @@ fn editor_end(stdout: &mut Stdout) -> io::Result<()> {
 
 fn main() -> io::Result<()> {
     let mut stdout = io::stdout(); // create output stream handler
-
     editor_init(&mut stdout)?;
-
     let mut arr: Vec<char> = Vec::new(); // store the characters on the line
 
     loop {
@@ -61,13 +59,13 @@ fn main() -> io::Result<()> {
                 KeyCode::Backspace => {
                     arr.pop();
                 }
-                KeyCode::Char('c') => {
-                    if key_event.modifiers == KeyModifiers::CONTROL {
+                KeyCode::Char(some) => {
+                    if key_event.modifiers == KeyModifiers::CONTROL
+                        && key_event.code == KeyCode::Char('c')
+                    {
                         editor_end(&mut stdout)?;
                         break;
                     }
-                }
-                KeyCode::Char(some) => {
                     arr.push(some);
                 }
                 _ => (),

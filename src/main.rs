@@ -36,7 +36,7 @@ fn editor_init(stdout: &mut Stdout) -> io::Result<()> {
     clear_screen(stdout)?;
     insert_tildes(stdout)?;
     print_name(stdout)?;
-    display_bottom_bar(stdout)?;
+    display_bottom_bar(&EditorModes::Normal, stdout)?;
     queue!(stdout, MoveTo(0, 0))?;
     stdout.flush()?;
     Ok(())
@@ -48,22 +48,28 @@ fn editor_end(stdout: &mut Stdout) -> io::Result<()> {
     Ok(())
 }
 
-fn display_bottom_bar(stdout: &mut Stdout) -> io::Result<()> {
+fn display_bottom_bar(mode: &EditorModes, stdout: &mut Stdout) -> io::Result<()> {
     let last_row = terminal::size()?.1;
     let cursor_pos_x = cursor::position()?.0;
     let cursor_pos_y = cursor::position()?.1;
+    let mode_str = match mode {
+        EditorModes::Normal => "Normal",
+        EditorModes::Typing => "Typing",
+    };
     queue!(
         stdout,
         SavePosition,
         MoveTo(0, last_row),
         Clear(terminal::ClearType::UntilNewLine),
-        Print(format!("cursor ({cursor_pos_x}, {cursor_pos_y})")),
+        Print(format!(
+            "{mode_str} | cursor ({cursor_pos_x}, {cursor_pos_y})"
+        )),
         RestorePosition,
     )?;
     Ok(())
 }
 
-fn draw_screen(arr: &Vec<char>, stdout: &mut Stdout) -> io::Result<()> {
+fn draw_screen(mode: &EditorModes, arr: &Vec<char>, stdout: &mut Stdout) -> io::Result<()> {
     // queue the carriage and reset for current line
     queue!(
         stdout,
@@ -76,7 +82,7 @@ fn draw_screen(arr: &Vec<char>, stdout: &mut Stdout) -> io::Result<()> {
         queue!(stdout, Print(key))?;
     }
 
-    display_bottom_bar(stdout)?;
+    display_bottom_bar(mode, stdout)?;
     stdout.flush()?; // execute the queued changes
     Ok(())
 }
@@ -87,7 +93,7 @@ fn main() -> io::Result<()> {
     let mut arr: Vec<char> = Vec::new(); // store the characters on the line
 
     // default mode is typing
-    let editor_mode = EditorModes::Typing;
+    let mut editor_mode = EditorModes::Typing;
 
     loop {
         let event = match crossterm::event::read() {
@@ -108,8 +114,20 @@ fn main() -> io::Result<()> {
 
             // change behavior based on 'modes'
             match editor_mode {
-                EditorModes::Normal => (), // will implement
+                EditorModes::Normal => match key_event.code {
+                    KeyCode::Char('i') => {
+                        editor_mode = EditorModes::Typing;
+                    }
+                    KeyCode::Char('h') => (),
+                    KeyCode::Char('j') => (),
+                    KeyCode::Char('k') => (),
+                    KeyCode::Char('l') => (),
+                    _ => (),
+                },
                 EditorModes::Typing => match key_event.code {
+                    KeyCode::Esc => {
+                        editor_mode = EditorModes::Normal;
+                    }
                     KeyCode::Backspace => {
                         arr.pop();
                     }
@@ -121,7 +139,7 @@ fn main() -> io::Result<()> {
             }
         }
 
-        draw_screen(&arr, &mut stdout)?;
+        draw_screen(&editor_mode, &arr, &mut stdout)?;
     }
 
     Ok(())

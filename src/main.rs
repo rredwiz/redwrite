@@ -36,7 +36,7 @@ fn editor_init(stdout: &mut Stdout) -> io::Result<()> {
     clear_screen(stdout)?;
     insert_tildes(stdout)?;
     print_name(stdout)?;
-    display_bottom_bar(&EditorModes::Normal, stdout)?;
+    display_bottom_bar(&EditorModes::Typing, stdout)?; // default is Typing
     queue!(stdout, MoveTo(0, 0))?;
     stdout.flush()?;
     Ok(())
@@ -69,18 +69,18 @@ fn display_bottom_bar(mode: &EditorModes, stdout: &mut Stdout) -> io::Result<()>
     Ok(())
 }
 
-fn draw_screen(mode: &EditorModes, arr: &Vec<char>, stdout: &mut Stdout) -> io::Result<()> {
+fn draw_screen(mode: &EditorModes, stdout: &mut Stdout) -> io::Result<()> {
     // queue the carriage and reset for current line
     queue!(
         stdout,
-        Print("\r"),
+        // Print("\r"),
         Clear(terminal::ClearType::UntilNewLine)
     )?;
 
     // printing everything on the stored line vec
-    for key in arr {
-        queue!(stdout, Print(key))?;
-    }
+    // for key in arr {
+    //     queue!(stdout, Print(key))?;
+    // }
 
     display_bottom_bar(mode, stdout)?;
     stdout.flush()?; // execute the queued changes
@@ -90,7 +90,7 @@ fn draw_screen(mode: &EditorModes, arr: &Vec<char>, stdout: &mut Stdout) -> io::
 fn main() -> io::Result<()> {
     let mut stdout = io::stdout(); // create output stream handler
     editor_init(&mut stdout)?;
-    let mut arr: Vec<char> = Vec::new(); // store the characters on the line
+    // let mut arr: Vec<char> = Vec::new(); // store the characters on the line
 
     // default mode is typing
     let mut editor_mode = EditorModes::Typing;
@@ -115,31 +115,23 @@ fn main() -> io::Result<()> {
             // change behavior based on 'modes'
             match editor_mode {
                 EditorModes::Normal => match key_event.code {
-                    KeyCode::Char('i') => {
-                        editor_mode = EditorModes::Typing;
-                    }
-                    KeyCode::Char('h') => (),
-                    KeyCode::Char('j') => (),
-                    KeyCode::Char('k') => (),
-                    KeyCode::Char('l') => (),
+                    KeyCode::Char('i') => editor_mode = EditorModes::Typing,
+                    KeyCode::Char('h') => queue!(stdout, cursor::MoveLeft(1))?,
+                    KeyCode::Char('j') => queue!(stdout, cursor::MoveDown(1))?,
+                    KeyCode::Char('k') => queue!(stdout, cursor::MoveUp(1))?,
+                    KeyCode::Char('l') => queue!(stdout, cursor::MoveRight(1))?,
                     _ => (),
                 },
                 EditorModes::Typing => match key_event.code {
-                    KeyCode::Esc => {
-                        editor_mode = EditorModes::Normal;
-                    }
-                    KeyCode::Backspace => {
-                        arr.pop();
-                    }
-                    KeyCode::Char(key) => {
-                        arr.push(key);
-                    }
+                    KeyCode::Esc => editor_mode = EditorModes::Normal,
+                    KeyCode::Backspace => (),
+                    KeyCode::Char(_) => (),
                     _ => (),
                 },
             }
         }
 
-        draw_screen(&editor_mode, &arr, &mut stdout)?;
+        draw_screen(&editor_mode, &mut stdout)?;
     }
 
     Ok(())
